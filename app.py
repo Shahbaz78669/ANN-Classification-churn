@@ -15,6 +15,8 @@ with open('onehot_encoder_geography.pkl','rb') as file:
     onehot_encoder_geography=pickle.load(file)
 
 
+with open('scaler.pkl','rb') as file:
+    scaler=pickle.load(file)
 
 
 st.title('Customer Churn Prediction')
@@ -62,8 +64,11 @@ geo_encoded_df = pd.DataFrame(geo_encoded, columns=onehot_encoder_geography.get_
 # Combine
 sample_input_df = pd.concat([sample_input_df.drop("Geography", axis=1), geo_encoded_df], axis=1)
 
-# Predict (model was trained on unscaled data)
-prediction = model.predict(sample_input_df)
+# Scale
+input_scaled = scaler.transform(sample_input_df)
+
+# Predict
+prediction = model.predict(input_scaled)
 prediction_prob = prediction[0][0]
 
 st.write(f"**Churn Probability:** {prediction_prob:.2%}")
