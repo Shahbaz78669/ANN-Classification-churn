@@ -4,8 +4,9 @@ import tensorflow as tf
 import streamlit as st
 from sklearn.preprocessing import OneHotEncoder,LabelEncoder
 import pickle
+from scipy import sparse
 
-model=tf.keras.models.load_model('model.h5')
+model=tf.keras.models.load_model('model.h5', compile=False)
 
 with open('lable_encoder_gender.pkl','rb') as file:
     label_encoder_gender=pickle.load(file)
@@ -50,27 +51,30 @@ sample_input = {
 
 sample_input_df = pd.DataFrame([sample_input])
 
-    # Encode Gender
+# Encode Gender
 sample_input_df['Gender'] = label_encoder_gender.transform(sample_input_df['Gender'])
 
 
 
 geo_encoded = onehot_encoder_geography.transform(sample_input_df[['Geography']])
+# Handle both sparse and dense output from OneHotEncoder
+if sparse.issparse(geo_encoded):
+    geo_encoded = geo_encoded.toarray()
 geo_encoded_df = pd.DataFrame(geo_encoded, columns=onehot_encoder_geography.get_feature_names_out(['Geography']))
 
-    # Combine
+# Combine
 sample_input_df = pd.concat([sample_input_df.drop("Geography", axis=1), geo_encoded_df], axis=1)
 
-    # Scale
+# Scale
 input_scaled = scaler.transform(sample_input_df)
 
-    # Predict
+# Predict
 prediction = model.predict(input_scaled)
 prediction_prob = prediction[0][0]
 
 st.write(f"**Churn Probability:** {prediction_prob:.2%}")
 
 if prediction_prob > 0.5:
-        st.error("The customer is likely to churn ")
+    st.error("The customer is likely to churn ")
 else:
-        st.success("The customer is likely to stay ")
+    st.success("The customer is likely to stay ")
