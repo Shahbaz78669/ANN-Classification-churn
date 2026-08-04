@@ -4,7 +4,6 @@ import tensorflow as tf
 import streamlit as st
 from sklearn.preprocessing import OneHotEncoder,LabelEncoder
 import pickle
-from scipy import sparse
 
 model=tf.keras.models.load_model('model.h5', compile=False)
 
@@ -16,8 +15,6 @@ with open('onehot_encoder_geography.pkl','rb') as file:
     onehot_encoder_geography=pickle.load(file)
 
 
-with open('scaler.pkl','rb') as file:
-    scaler=pickle.load(file)
 
 
 st.title('Customer Churn Prediction')
@@ -58,18 +55,15 @@ sample_input_df['Gender'] = label_encoder_gender.transform(sample_input_df['Gend
 
 geo_encoded = onehot_encoder_geography.transform(sample_input_df[['Geography']])
 # Handle both sparse and dense output from OneHotEncoder
-if sparse.issparse(geo_encoded):
+if hasattr(geo_encoded, 'toarray'):
     geo_encoded = geo_encoded.toarray()
 geo_encoded_df = pd.DataFrame(geo_encoded, columns=onehot_encoder_geography.get_feature_names_out(['Geography']))
 
 # Combine
 sample_input_df = pd.concat([sample_input_df.drop("Geography", axis=1), geo_encoded_df], axis=1)
 
-# Scale
-input_scaled = scaler.transform(sample_input_df)
-
-# Predict
-prediction = model.predict(input_scaled)
+# Predict (model was trained on unscaled data)
+prediction = model.predict(sample_input_df)
 prediction_prob = prediction[0][0]
 
 st.write(f"**Churn Probability:** {prediction_prob:.2%}")
